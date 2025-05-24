@@ -13,6 +13,7 @@ from flask_limiter.errors import RateLimitExceeded
 # Import extensions
 from extensions import db, login_manager, bcrypt, limiter
 
+
 # Load environment variables
 load_dotenv()
 
@@ -25,7 +26,8 @@ pymysql.install_as_MySQLdb()
 # Create Flask application
 def create_app():
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+    
 
     # CSRF Protection
     csrf.init_app(app)
