@@ -10,20 +10,27 @@
             <div class="card-body">
                 <form method="post" novalidate>
                     {{ form.hidden_tag() }}
+
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}
                         {{ form.username(class="form-control") }}
                         {% for error in form.username.errors %}
-                        <div class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
-                    <div class="mb-3">
+
+                    <div class="mb-3 position-relative">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
+                        <div class="input-group">
+                            {{ form.password(class="form-control", id="password") }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()" tabindex="-1">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
                         {% for error in form.password.errors %}
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
+
                     <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-primary") }}
                     </div>
@@ -36,4 +43,21 @@
         </div>
     </div>
 </div>
+
+<script>
+function togglePassword() {
+    const input = document.getElementById('password');
+    const icon = document.getElementById('toggleIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+</script>
+
 {% endblock %} 
