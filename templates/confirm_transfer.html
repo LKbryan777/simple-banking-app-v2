@@ -17,21 +17,35 @@
                     <p><strong>From Account Balance:</strong> ₱{{ "%.2f"|format(current_user.balance) }}</p>
                     <p><strong>Remaining Balance After Transfer:</strong> ₱{{ "%.2f"|format(current_user.balance - amount) }}</p>
                 </div>
-                
-                <form action="{{ url_for('execute_transfer') }}" method="post">
+
+                {% if current_user.balance - amount < 100 %}
+                <div class="alert alert-danger">
+                    Warning: Your remaining balance will be below ₱100.
+                </div>
+                {% endif %}
+
+                <form action="{{ url_for('execute_transfer') }}" method="post" onsubmit="return confirm('Are you sure you want to proceed with this transfer?');">
                     {{ form.hidden_tag() }}
 
-                      <div class="mb-3">
+                    <div class="mb-3">
                         {{ form.recaptcha }}
+                        {% if form.recaptcha.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.recaptcha.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
-                    
+
                     <div class="d-flex justify-content-between">
                         <a href="{{ url_for('transfer') }}" class="btn btn-secondary">Cancel</a>
                         {{ form.submit(class="btn btn-success") }}
                     </div>
                 </form>
+
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
