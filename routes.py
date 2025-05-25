@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.urls import url_parse
 from app import app, csrf
@@ -10,6 +10,13 @@ import os
 from functools import wraps
 import psgc_api
 import datetime
+
+# Added imports
+import hmac, re, time
+import secrets
+from itsdangerous import URLSafeTimedSerializer
+from wtforms.validators import Regexp
+
 
 # Context processor to provide current year to all templates
 @app.context_processor
@@ -36,6 +43,18 @@ def manager_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+# Role/status check
+def active_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.status != 'active' and not current_user.is_admin and not current_user.is_manager:
+            flash('Access denied. Please contact admin.')
+            logout_user()
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Email functionality (simulated for this example)
 def send_password_reset_email(user):
     # In a real app, this would send an actual email with a reset token
@@ -44,6 +63,25 @@ def send_password_reset_email(user):
     token = serializer.dumps(user.email, salt='password-reset')
     reset_url = url_for('reset_password', token=token, _external=True)
     flash(f'Password reset link (would be emailed): {reset_url}')
+    
+def generate_transfer_token(user_id):
+    serializer = URLSafeTimedSerializer(app.secret_key)
+    token = serializer.dumps({'user_id': user_id, 'nonce': secrets.token_hex(16)})
+    session['transfer_token'] = token  # or store in DB with status = unused
+    return token
+
+def validate_transfer_token(token, max_age=300):  # 5 minutes expiration
+    from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+    try:
+        serializer = URLSafeTimedSerializer(app.secret_key)
+        data = serializer.loads(token, max_age=max_age)
+        if session.get('transfer_token') != token:
+            return False  # replay detected or not matching
+        session.pop('transfer_token', None)  # invalidate after use
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
 
 @app.route('/')
 @app.route('/index')
@@ -64,26 +102,32 @@ def about():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+    
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         
+        
         # Check if this is an old SHA-256 password hash (exactly 64 characters)
         # SHA-256 hashes are 64 characters long, bcrypt hashes start with $2b$
         if user and user.password_hash and len(user.password_hash) == 64 and not user.password_hash.startswith('$2b$'):
+            
             import hashlib
             # Verify with old method
             sha2_hash = hashlib.sha256(form.password.data.encode()).hexdigest()
-            if sha2_hash == user.password_hash:
+            
+            if hmac.compare_digest(sha2_hash, user.password_hash):
                 # Upgrade to bcrypt
                 user.set_password(form.password.data)
                 db.session.commit()
                 # Continue with login
             else:
                 flash('Invalid username or password')
+                print(user.username, user.status, user.is_admin, user.password_hash)
                 return redirect(url_for('login'))
         elif user is None or not user.check_password(form.password.data):
             flash('Invalid username or password')
+            print(user.username, user.status, user.is_admin, user.password_hash)
             return redirect(url_for('login'))
         
         # Check if user account is active (unless they're an admin or manager)
@@ -95,6 +139,7 @@ def login():
             return redirect(url_for('login'))
             
         login_user(user)
+        
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('index')
@@ -102,7 +147,9 @@ def login():
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
+@login_required
 def logout():
+    flash("Logged out successfully.")
     logout_user()
     return redirect(url_for('login'))
 
@@ -111,23 +158,52 @@ def logout():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+    
     form = RegistrationForm()
+    
     if form.validate_on_submit():
+        # Block disposable email domains (example list; expand as needed)
+        disposable_domains = {'mailinator.com', '10minutemail.com', 'tempmail.com'}
+        email_domain = form.email.data.split('@')[-1].lower()
+        if email_domain in disposable_domains:
+            flash('Disposable email addresses are not allowed. Please use a valid email.')
+            return redirect(url_for('register'))
+        
+        # Check if username/email already exists (with generic error message)
+        existing_user = User.query.filter(
+            (User.username == form.username.data) | (User.email == form.email.data)
+        ).first()
+        if existing_user:
+            flash('Registration failed. Please check your input and try again.')  # generic msg
+            return redirect(url_for('register'))
+        
+        # Enforce password complexity (example: min 8 chars, uppercase, lowercase, digit)
+        pwd = form.password.data
+        if (len(pwd) < 8 or 
+            not re.search(r'[A-Z]', pwd) or 
+            not re.search(r'[a-z]', pwd) or 
+            not re.search(r'\d', pwd)):
+            flash('Password must be at least 8 characters long and include uppercase, lowercase, and a number.')
+            # Clear password fields but keep others
+            form.password.data = ''
+            form.password2.data = ''
+            return render_template('register.html', title='Register', form=form)
+        
         user = User(username=form.username.data, email=form.email.data, status='pending')
         user.set_password(form.password.data)
+        
         db.session.add(user)
         db.session.commit()
+        
         flash('Your account has been registered and is awaiting admin approval.')
         return redirect(url_for('login'))
+    
     return render_template('register.html', title='Register', form=form)
 
 @app.route('/account')
 @login_required
+@active_required
 def account():
-    if current_user.status != 'active' and not current_user.is_admin and not current_user.is_manager:
-        flash('Your account is awaiting approval from an administrator.')
-        logout_user()
-        return redirect(url_for('login'))
     transactions = current_user.get_recent_transactions()
     return render_template('account.html', title='Account', transactions=transactions)
 
@@ -140,7 +216,13 @@ def transfer():
         return redirect(url_for('index'))
         
     form = TransferForm()
+    
     if form.validate_on_submit():
+        
+        if form.transfer_type.data not in ['username', 'account']:
+            flash('Invalid transfer type.')
+            return redirect(url_for('transfer'))
+        
         # Find recipient based on transfer type
         recipient = None
         if form.transfer_type.data == 'username':
@@ -148,20 +230,26 @@ def transfer():
         else:  # account
             recipient = User.query.filter_by(account_number=form.recipient_account.data).first()
             
+        # Prevent recipient enumeration
+        if not recipient:
+            flash('Invalid recipient or transfer not allowed.')
+            return redirect(url_for('transfer'))
+            
         amount = form.amount.data
         
         # Check for self-transfer
         if recipient and recipient.id == current_user.id:
             flash('You cannot transfer money to yourself.')
             return redirect(url_for('transfer'))
-            
-        if current_user.balance < amount:
-            flash('Insufficient funds for this transfer.')
-            return redirect(url_for('transfer'))
         
         # Check if recipient account is active
         if recipient.status != 'active' and not recipient.is_admin and not recipient.is_manager:
             flash('The recipient account is not active.')
+            return redirect(url_for('transfer'))
+        
+        # Check balance
+        if current_user.balance < amount:
+            flash('Insufficient funds.')
             return redirect(url_for('transfer'))
         
         # Create confirm transfer form with pre-populated data
@@ -177,7 +265,7 @@ def transfer():
                               recipient=recipient,
                               amount=amount,
                               form=confirm_form)
-    
+        
     return render_template('transfer.html', title='Transfer Money', form=form)
 
 @app.route('/execute_transfer', methods=['POST'])
@@ -189,8 +277,21 @@ def execute_transfer():
         return redirect(url_for('index'))
     
     form = ConfirmTransferForm()
+    
+    # Check form validity
+    if not form.validate_on_submit():
+        flash('Invalid form submission.')
+        return redirect(url_for('transfer'))
+    
     if form.validate_on_submit():
-        amount = float(form.amount.data)
+        try:
+            amount = float(form.amount.data)
+            if amount <= 0 or amount > 1_000_000:  # arbitrary cap
+                flash("Invalid transfer amount.")
+                return redirect(url_for('transfer'))
+        except ValueError:
+            flash("Invalid amount format.")
+            return redirect(url_for('transfer'))
         
         # Find recipient based on transfer type
         recipient = None
@@ -199,8 +300,9 @@ def execute_transfer():
         else:  # account
             recipient = User.query.filter_by(account_number=form.recipient_account.data).first()
         
-        if recipient is None:
-            flash('Recipient not found.')
+        if not recipient or (recipient.status != 'active' and not recipient.is_admin and not recipient.is_manager):
+            time.sleep(1.5)  # Artificial delay
+            flash("Transfer failed. Please verify recipient details.")
             return redirect(url_for('transfer'))
         
         # Check if recipient account is active
@@ -262,7 +364,7 @@ def reset_password(token):
 @app.route('/admin')
 @login_required
 @admin_required
-@limiter.limit("60 per hour")
+@limiter.limit("10/hour", key_func=lambda: current_user.id)
 def admin_dashboard():
     # Regular admins can only see regular users
     if current_user.is_manager:
@@ -274,7 +376,7 @@ def admin_dashboard():
     
     return render_template('admin/dashboard.html', title='Admin Dashboard', users=users)
 
-@app.route('/admin/activate_user/<int:user_id>')
+@app.route('/admin/activate_user/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
 def activate_user(user_id):
@@ -286,11 +388,13 @@ def activate_user(user_id):
         return redirect(url_for('admin_dashboard'))
         
     user.status = 'active'
+    
+    
     db.session.commit()
-    flash(f'Account {user.username} has been activated.')
+    flash("User account has been activated.")
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/deactivate_user/<int:user_id>')
+@app.route('/admin/deactivate_user/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
 def deactivate_user(user_id):
@@ -300,25 +404,41 @@ def deactivate_user(user_id):
     if not current_user.can_manage_user(user):
         flash('You do not have permission to manage this user.')
         return redirect(url_for('admin_dashboard'))
+    
         
     user.status = 'deactivated'
     db.session.commit()
-    flash(f'Account {user.username} has been deactivated.')
+    flash(f'User account has been deactivated.")')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/create_account', methods=['GET', 'POST'])
 @login_required
 @admin_required
-@limiter.limit("20 per hour")
+@limiter.limit("20/hour")
 def create_account():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data, status='active')
+        # Check for duplicate username/email
+        if User.query.filter_by(username=form.username.data).first():
+            flash('Username already exists.')
+            return render_template('admin/create_account.html', title='Create User Account', form=form)
+        if User.query.filter_by(email=form.email.data).first():
+            flash('Email already registered.')
+            return render_template('admin/create_account.html', title='Create User Account', form=form)
+
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            status='pending'  # Force admin approval
+        )
         user.set_password(form.password.data)
         db.session.add(user)
+
+
         db.session.commit()
-        flash('User account has been created.')
+        flash('User account has been created. Awaiting approval.')
         return redirect(url_for('admin_dashboard'))
+
     return render_template('admin/create_account.html', title='Create User Account', form=form)
 
 @app.route('/admin/deposit', methods=['GET', 'POST'])
@@ -347,6 +467,10 @@ def admin_deposit():
         
         amount = form.amount.data
         
+        if amount <= 0 or amount > 100_000:
+            flash('Invalid deposit amount.')
+            return redirect(url_for('admin_deposit'))
+
         # Call deposit method
         if user.deposit(amount, current_user):
             db.session.commit()
