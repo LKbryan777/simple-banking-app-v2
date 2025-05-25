@@ -124,7 +124,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
 ```
 
-The original implementation sets the SECRET_KEY to a randomly generated value using secrets.token_hex(16) if no environment variable is set. While this fallback seems secure at first glance, it introduces a critical vulnerability in a production environment where the environment variable may be unset or misconfigured.
+The initial implementation assigns the SECRET_KEY a randomly generated value via secrets.token_hex(16) if an environment variable is not defined. Although this fallback appears to be secure at first sight, it creates a significant vulnerability in a production environment where the environment variable might be absent or incorrectly set.
 
 ```python
 # Create Flask application
@@ -132,8 +132,7 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ```
-Created a .env file to securely store environment variables, including the SECRET_KEY. Environment variables are loaded securely at application startup using tools such as python-dotenv or the hosting platform’s environment variable configuration.
-Restricts secret exposure to only the runtime environment, improving security posture.
+Created a .env file to safely keep environment variables, including the SECRET_KEY. Environment variables are loaded securely during application initialization using tools like python-dotenv or the environment variable settings provided by the hosting platform. This limits the exposure of secrets to just the runtime environment, enhancing the security stance.
 
 **improvement**
 ```python
@@ -153,35 +152,35 @@ The original code compared SHA-256 password hashes using a simple equality check
 if sha2_hash == user.password_hash:
 ```
 
-This allows potential timing attacks where an attacker measures response time to infer partial matches, undermining password security.
+This creates opportunities for timing attacks, where an attacker can assess response times to deduce partial matches, thereby compromising password security.
 
 ***Improvements***
 ```python
 import hmac
 if hmac.compare_digest(sha2_hash, user.password_hash):
+
 ```
 
-Replaced simple equality with hmac.compare_digest() for constant-time comparison.
-Mitigates timing attacks by ensuring the comparison takes the same time regardless of matching prefix length.
+Substituted basic equality checks with hmac.compare_digest() for comparisons that run in constant time.
+Reduces the risk of timing attacks by making sure the comparison duration remains constant, irrespective of the length of the matching prefix.
 
 <br>
 
-2. **Lack of CSRF Protection**
-   
-The login route lacked explicit CSRF protection, leaving it vulnerable to Cross-Site Request Forgery attacks.
+2. **Absence of CSRF Safeguards**
+
+The login route was missing clear CSRF protections, making it susceptible to Cross-Site Request Forgery attacks.
 
 ***Improvements***
 
-Added CSRF protection, through Flask-WTF with form.hidden_tag() and CSRF tokens.
-This prevents malicious sites from forging POST requests to the login endpoint.
+Implemented CSRF protection using Flask-WTF with form.hidden_tag() and CSRF tokens. This stops harmful sites from generating forged POST requests to the login endpoint.
 
 ---
 
 #### */register*
 
-1. **No Email Domain Validation (Disposable Emails Allowed)**
-    
-The original code accepted any email address without filtering disposable or temporary email services. This can lead to fake accounts, spam, and abuse.
+1. **Lack of Validation for Email Domains (Disposable Emails Permitted)**
+
+The original code allowed all email addresses without checking for disposable or temporary email providers. This could result in the creation of fake accounts, increased spam, and potential misuse.
 
 ***Improvements***
 ```python
@@ -191,13 +190,13 @@ if email_domain in disposable_domains:
     flash('Disposable email addresses are not allowed. Please use a valid email.')
     return redirect(url_for('register'))
 ```
-Added a deny list of disposable email domains to prevent registration with temporary or throwaway addresses.
-Helps reduce spam, fake registrations, and abuse of system resources.
+Implemented a blacklist of temporary email domains to stop registrations using disposable or throwaway addresses.
+This helps to minimize spam, fake sign-ups, and misuse of system resources.
 
 
-2. **No Duplicate Username or Email Check**
-   
-The function failed to verify whether the email address or login was already registered. This might permit several accounts with the same credentials or result in database issues.
+2. **Lack of Verification for Duplicate Usernames or Emails**
+
+The function did not check if the email address or username was already in use. This could allow for multiple accounts with identical credentials or lead to problems within the database.
 
 ***Improvements***
 ```python
@@ -207,12 +206,12 @@ if existing_user:
     flash('Registration failed. Please check your input and try again.')  # generic message
     return redirect(url_for('register'))
 ```
-Added a database query to check if the username or email already exists before creating a new user.
-Uses a generic error message to avoid revealing which specific field is duplicated (prevents username/email enumeration attacks).
+Implemented a database query to verify whether the username or email is already in use prior to creating a new user.
+Employs a universal error message to prevent disclosing which specific field has a duplicate (mitigating username/email enumeration attacks).
 
-3. **Weak Password Policy (No Complexity Enforcement)**
- 
-The original registration allowed any password regardless of length or complexity, increasing risk of account compromise through weak passwords.
+3. **Inadequate Password Policy (Lack of Complexity Requirements)**
+
+The initial registration process permitted any password without restrictions on length or complexity, heightening the risk of account breaches due to weak passwords.
 
 ***Improvements***
 ```python
@@ -226,24 +225,16 @@ if (len(pwd) < 8 or
     form.password2.data = ''
     return render_template('register.html', title='Register', form=form)
 ```
-Enforces a minimum password length of 8 characters.
-Requires at least one uppercase letter, one lowercase letter, and one digit.
-Enhances overall account security by preventing weak passwords.
-
-4. **Informative Error Messages for User Existence**
-
-No explicit feedback was given about existing users or emails, potentially causing confusion.
-
-***Improvements***
-
-Upon password validation failure, clears only the password fields to avoid frustrating the user by losing all entered data.
+Imposes a minimum password length of 8 characters.
+Mandates the inclusion of at least one uppercase letter, one lowercase letter, and one digit.
+Boosts overall account security by obstructing weak passwords.
 
 ---
 
 #### */transfer*
 
-1. **No Validation of `transfer_type` Input**  
-The original code did not verify if the `transfer_type` field contained only allowed values (`'username'` or `'account'`). This could lead to unexpected behavior or abuse if invalid types are passed.
+1. **Lack of Validation for `transfer_type` Input**  
+The initial code failed to check whether the `transfer_type` field included only permitted values (`'username'` or `'account'`). This oversight could result in unintended consequences or misuse if unauthorized types are provided.
 
 ***Improvements***
 ```python
@@ -251,11 +242,11 @@ if form.transfer_type.data not in ['username', 'account']:
 flash('Invalid transfer type.')
 return redirect(url_for('transfer'))
 ```
-Added explicit validation to ensure transfer_type is either 'username' or 'account'.
-Prevents malformed or unexpected inputs from affecting business logic or causing errors.
+Implemented strict validation to guarantee that transfer_type is either 'username' or 'account.'
+This helps prevent malformed or unexpected inputs from impacting business logic or leading to errors.
 
-2. **Recipient Enumeration Risk**  
-If the recipient could not be found (for example, because the username or account number was invalid), the system replied in a different way, which could have let information about valid usernames or accounts get leaked out.
+2. **Risk of Recipient Enumeration**  
+When the recipient was not identifiable (for instance, due to an incorrect username or account number), the system responded differently, potentially exposing information about valid usernames or accounts.
 
 ***Improvements***
 ```python
@@ -263,22 +254,24 @@ if not recipient:
     flash('Invalid recipient or transfer not allowed.')
     return redirect(url_for('transfer'))
 ```
-When recipient lookup fails, a generic error message is shown rather than revealing if a username or account number exists.
-This prevents attackers from probing valid accounts via response differences.
+When recipient lookup is unsuccessful, a general error message is displayed instead of indicating whether a username or account number is valid.
+This approach stops attackers from testing valid accounts by exploiting variations in responses.
 
-3. **Order of Balance Check and Recipient Status Check**  
-The original code checked to see if there was enough money in the account before checking to see if the recipient's account was open. This could have wasted resources or accidentally shared information.
+3. **Order of Balance Verification and Recipient Status Verification**  
+The initial code verified whether there were sufficient funds in the account prior to confirming if the recipient's account was active. This sequence might have led to resource wastage or unintended information disclosure.
 
-***Improvements***
+***Enhancements***
 
-Moved the recipient active status check before balance validation to avoid unnecessary processing if the recipient is inactive.
+Rearranged the check for the recipient's active status to precede the balance validation, thus preventing unnecessary processing when the recipient is inactive.
 
 ---
 
 #### */execute_transfer*
 
-1. **Insecure Handling of Invalid Forms**  
-The original code only proceeded if `form.validate_on_submit()` passed but didn't handle the failure path explicitly. Users could bypass intended behavior or receive no useful feedback.
+
+1. **Improper Management of Invalid Forms**  
+
+The initial code continued execution solely when `form.validate_on_submit()` was successful, yet it did not explicitly address what happens when validation fails. As a result, users might circumvent the intended functionality or be left without helpful feedback.
 
 ***Improvements***
 ```python
@@ -296,10 +289,10 @@ Checks that the transfer amount is:
 - Greater than zero.
 - Below a set cap (₱1,000,000).
 
-Prevents negative or zero transfers and mitigates abuse such as draining accounts or service disruption through extreme values.
+Stops transfers that are negative or zero and helps reduce misuse, like emptying accounts or causing service interruptions through excessive values.
 
 2. **Recipient Enumeration Risk**  
-Flashing specific errors like “Recipient not found” could allow an attacker to probe for valid usernames or account numbers through timing and message analysis.
+Displaying particular error messages such as “Recipient not found” may enable an attacker to identify valid usernames or account numbers by analyzing timing and messages.
 
 ***Improvements***
 ```python
@@ -308,31 +301,29 @@ if not recipient or (recipient.status != 'active' and not recipient.is_admin and
     flash("Transfer failed. Please verify recipient details.")
     return redirect(url_for('transfer'))
 ```
-Merged both "not found" and "inactive" recipient cases into one generic error message.
-Prevents user enumeration by avoiding error message differences based on the validity of the recipient.
-Bonus: Adds a 1.5-second artificial delay to deter brute-force guessing attempts.
+Combined the "not found" and "inactive" recipient scenarios into a single generic error message.
+This stops user enumeration by ensuring that the error messages remain the same regardless of the recipient's validity.
+Bonus: A 1.5-second artificial delay has been incorporated to discourage brute-force guessing attempts.
 
 ---
 
 #### */admin*
 
-1. **CSRF Risk via GET Requests for State-Changing Operations**
- `activate_user` and `deactivate_user` routes used the `GET` method to modify server-side data.
-An attacker could embed image tags or links to perform CSRF attacks and trigger unintended state changes (e.g., `img src="https://bank.com/admin/deactivate_user/5"`).
+1. **CSRF Vulnerability through GET Requests for Operations that Change State**  
+The `activate_user` and `deactivate_user` endpoints utilized the `GET` method to alter data on the server side. An attacker could insert image tags or links to execute CSRF attacks, causing unwanted changes in state (e.g., `img src="https://bank.com/admin/deactivate_user/5"`).
 
 ***Improvements***
 ```python
 @app.route('/admin/activate_user/<int:user_id>', methods=['POST'])
 @app.route('/admin/deactivate_user/<int:user_id>', methods=['POST'])
 ```
-Uses POST for all state-changing routes.
-Mitigates CSRF risks by requiring deliberate form submissions with CSRF tokens (assuming Flask-WTF is used).
+Utilizes POST for every route that alters the state.
+Reduces CSRF threats by necessitating intentional form submissions with CSRF tokens (assuming Flask-WTF is implemented).
 
 
-2. **Account Enumeration and Duplicate Entry Risk in `create_account`**
+2.**Account Enumeration and Duplicate Entry Risk in `create_account`**
 
-No validation to check for existing usernames or emails during user creation.
-Allows creation of duplicate accounts, potential errors, and disclosure of registered usernames/emails via feedback timing or error messages.
+There is a lack of validation to verify existing usernames or emails when creating a user account. This enables the creation of duplicate accounts, which can lead to errors and the inadvertent exposure of registered usernames/emails through discrepancies in feedback timing or error messages.
 
 ***Improvements***
 ```python
@@ -342,28 +333,27 @@ if User.query.filter_by(username=form.username.data).first():
 if User.query.filter_by(email=form.email.data).first():
     flash('Email already registered.')
 ```
-Checks for existing users before account creation.
-Prevents database integrity issues and stops malicious or accidental duplication of user credentials
+Verifies the presence of current users prior to creating a new account.
+Averts database integrity problems and prevents the unintentional or harmful duplication of user credentials.
 
-3. **Defaulting to Active Status on New Accounts**
+3. **Automatic Active Status for New Accounts**
 
-New accounts were automatically marked as `'active'`.
-No vetting or moderation by an administrator—risk of abuse through admin-created accounts without oversight.
+New accounts were instantly labeled as `'active'`.  
+There was no review or moderation by an administrator—this posed a risk of misuse via accounts created by admins without supervision.
 
 ***Improvements***
 ```python
 status='pending'  # Force admin approval
 ```
-New users are not active by default.
-Adds an approval workflow, ensuring admins verify users before they can access the system.
-
+New users are inactive by default.
+An approval process is implemented, requiring administrators to confirm users before they gain access to the system.
 ---
 
 #### */admin/deposit*
 
-1. **Missing Validation on Deposit Amount**
-The `amount` input was not validated to ensure it was a positive number or within a reasonable range.
-Negative deposits may allow manipulation of account balances or introduce inconsistencies, while excessive amounts could lead to financial errors, abuse, or system misuse by entering extremely large deposit amounts (e.g., billions of pesos).
+1. **Lack of Validation on Deposit Amount**  
+The `amount` input lacked checks to confirm that it was a positive number or fell within a sensible range.  
+Negative deposits might enable the manipulation of account balances or cause inconsistencies, while overly large amounts could result in financial inaccuracies, misuse, or abuse of the system by entering extraordinarily high deposit figures (e.g., billions of pesos).
 
 ***Improvements***
 ```python
