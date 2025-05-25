@@ -8,28 +8,36 @@
                 <h4>Sign In</h4>
             </div>
             <div class="card-body">
-                <form method="post" novalidate>
+                <form method="post" novalidate onsubmit="disableSubmit(this)">
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control") }}
+                        {{ form.username(class="form-control", autofocus=True, required=True, aria-describedby="usernameHelp") }}
                         {% for error in form.username.errors %}
+                        <div id="usernameHelp" class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
 
                     <div class="mb-3 position-relative">
                         {{ form.password.label(class="form-label") }}
                         <div class="input-group">
-                            {{ form.password(class="form-control", id="password") }}
-                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()" tabindex="-1">
+                            {{ form.password(class="form-control", id="password", required=True, aria-describedby="passwordHelp", autocomplete="current-password") }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()" tabindex="-1" aria-label="Toggle password visibility">
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
                         </div>
                         {% for error in form.password.errors %}
-                        <div class="text-danger">{{ error }}</div>
+                        <div id="passwordHelp" class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
+
+                    {% if form.remember_me %}
+                    <div class="mb-3 form-check">
+                        {{ form.remember_me(class="form-check-input", id="rememberMe") }}
+                        {{ form.remember_me.label(class="form-check-label", for="rememberMe") }}
+                    </div>
+                    {% endif %}
 
                     <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-primary") }}
@@ -58,6 +66,15 @@ function togglePassword() {
         icon.classList.add('bi-eye');
     }
 }
+
+function disableSubmit(form) {
+    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Signing in...';
+    }
+    return true;  // allow form submission
+}
 </script>
 
-{% endblock %} 
+{% endblock %}
