@@ -14,17 +14,21 @@
 ---
 
 ## **Introduction**
-The Simple Banking App is a secure, user-friendly web application built with the Flask framework and integrated with a MySQL database to support essential banking functionalities. Designed for both regular users and administrators, it enables account creation, secure login, balance inquiries, transaction tracking, and peer-to-peer money transfers. Each user is assigned a distinct account number, and all financial activities are recorded for transparency and accountability. Security is a core focus of the application. It employs bcrypt for password hashing, Flask-Login for session control, CSRF protection to prevent cross-site request forgery, and rate limiting to mitigate abuse. The application also includes an admin dashboard where administrators and managers can oversee operations, manage users, and maintain system integrity. Environment-based configuration ensures smooth deployment across development and production environments. The backend is supported by a carefully designed SQL schema that uses indexing and relational constraints to maintain data consistency and enhance performance. Overall, the application provides a reliable and extensible framework for delivering core banking services online.
+The Simple Banking App is a secure and user-friendly web application developed using the Flask framework, integrated with a MySQL database to facilitate essential banking functionalities. Designed for both standard users and administrators, it supports account creation, secure login, balance inquiries, transaction tracking, and peer-to-peer money transfers. Each user is assigned a unique account number, and all financial activities are meticulously recorded to ensure transparency and accountability.
+
+Security is at the forefront of the application’s design. It utilizes bcrypt for password hashing, Flask-Login for session management, CSRF protection to prevent cross-site request forgery, and rate limiting to prevent abuse. Additionally, the app features an admin dashboard that allows administrators and managers to monitor operations, manage users, and uphold system integrity.
+
+Environment-based configuration guarantees seamless deployment across both development and production environments. The backend is underpinned by a well-structured SQL schema that employs indexing and relational constraints to maintain data consistency and optimize performance. Overall, the application offers a reliable and extensible framework for delivering essential banking services online.
 
 ---
 ---
 
 ## **Objectives**
 
-- Implement secure user authentication and role-based access control.
-- Allow users to carry out essential banking transactions such as transfers and balance checks.
-- Protect the system from security threats such as SQL injection, CSRF attacks, and abuse via excessive requests.
-- Design for scalability and maintainability through clean architecture and modular design.
+- Implement robust user authentication and role-based access control.
+- Enable users to perform essential banking transactions, including transfers and balance inquiries.
+- Safeguard the system against security threats such as SQL injection, CSRF attacks, and excessive request abuse.
+- Design for scalability and maintainability using clean architecture and modular design principles.
 
 ---
 ---
@@ -608,7 +612,7 @@ Security Benefit:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/DonnDeLima/simple-banking-app-v2.git
+   git clone https://github.com/LKbryan777/simple-banking-app-v2.git
    cd simple-banking-app-v2
    ```
 
