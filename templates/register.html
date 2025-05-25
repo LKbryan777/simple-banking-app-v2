@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -24,20 +25,32 @@
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 position-relative">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
+                        <div class="input-group">
+                            {{ form.password(class="form-control", id="password") }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                         {% for error in form.password.errors %}
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
-                    <div class="mb-3">
+
+                    <div class="mb-3 position-relative">
                         {{ form.password2.label(class="form-label") }}
-                        {{ form.password2(class="form-control") }}
+                        <div class="input-group">
+                            {{ form.password2(class="form-control", id="password2") }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password2', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                         {% for error in form.password2.errors %}
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>
+
                     <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-primary") }}
                     </div>
@@ -49,4 +62,22 @@
         </div>
     </div>
 </div>
+
+<script>
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("bi-eye");
+        icon.classList.add("bi-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
+    }
+}
+</script>
+
+
 {% endblock %} 
