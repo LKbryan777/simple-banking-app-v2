@@ -361,13 +361,12 @@ if amount <= 0 or amount > 100_000:
     flash('Invalid deposit amount.')
     return redirect(url_for('admin_deposit'))
 ```
-Ensures that only reasonable, non-negative deposit amounts (₱0.01 to ₱100,000) are processed.
+Guarantees that only acceptable deposit amounts (₱0.01 to ₱100,000) are handled.
 
-Security Benefit:
-- Blocks malicious input such as zero or negative values.
-- Prevents extreme values that could cause overflow, fraud, or ledger imbalance.
-- Adds a layer of business rule enforcement directly in the controller.
-
+Security Advantage:
+- Prevents harmful inputs like zero or negative figures.
+- Avoids extreme values that might lead to overflow, fraud, or discrepancies in the ledger.
+- Introduces an additional layer of business rule enforcement right within the controller.
 ---
 
 ### **Penetration Testing Report**
@@ -398,7 +397,7 @@ Security Benefit:
 | Add audit logs for admin actions            | 🔄 Pending     |
 | Conduct regular security code reviews       | 🔄 Ongoing     |
 
-> Note: Due to time constraints, Other sensitive routes such as `/manager`, `/api`, and `/admin/edit_user` was not thoroughly audited. These endpoints should be prioritized in the next round of review to ensure proper access control and input validation are in place.
+> Note: Because of time limitations, other sensitive paths like `/manager`, `/api`, and `/admin/edit_user` were not fully examined. It's important to give priority to these endpoints in the next review to guarantee that appropriate access control and input validation are implemented.
 
 ---
 ---
@@ -409,101 +408,101 @@ Security Benefit:
 </center>
 </div>
 
-#### 1. `app.py`: Insecure SECRET_KEY Handling
-- **Issue**: Secret key fallback uses `secrets.token_hex(16)` if unset.
-- **Exploit**: Predictable key resets on each restart; session hijacking possible.
-- **Fix**: SECRET_KEY must be explicitly set via environment (.env) file.
+#### 1. `app.py`: Insecure Handling of SECRET_KEY  
+- **Issue**: The secret key defaults to `secrets.token_hex(16)` if it is not set.  
+- **Exploit**: Keys that can be predicted are reset with each restart, making session hijacking a risk.  
+- **Fix**: The SECRET_KEY should be explicitly defined in an environment (.env) file.  
 
 ---
 
-#### 2. `/login`: Timing Attack on Hash Comparison
-- **Issue**: Used `==` for hash comparison.
-- **Exploit**: Attacker infers hash via timing differences.
-- **Fix**: Replaced with `hmac.compare_digest()`.
+#### 2. `/login`: Vulnerability to Timing Attacks during Hash Comparison  
+- **Issue**: Hash comparison uses the `==` operator.  
+- **Exploit**: An attacker can deduce the hash through timing variations.  
+- **Fix**: Use `hmac.compare_digest()` instead.  
 
 ---
 
-#### 3. `/login`: No CSRF Protection
-- **Issue**: Form lacked CSRF tokens.
-- **Exploit**: Malicious site submits login requests on user's behalf.
-- **Fix**: Added Flask-WTF CSRF protection.
+#### 3. `/login`: Absence of CSRF Protection  
+- **Issue**: The form does not include CSRF tokens.  
+- **Exploit**: A malicious site can submit login requests on behalf of the user.  
+- **Fix**: Implement CSRF protection with Flask-WTF.  
 
 ---
 
-#### 4. `/register`: Disposable Email Allowed
-- **Issue**: No filtering for throwaway emails.
-- **Exploit**: Attackers flood system using temporary emails.
-- **Fix**: Reject known disposable domains.
+#### 4. `/register`: Acceptance of Disposable Emails  
+- **Issue**: There's no filtering for disposable email addresses.  
+- **Exploit**: Attackers can inundate the system using temporary email addresses.  
+- **Fix**: Block known disposable email domains.  
 
 ---
 
-#### 5. `/register`: No Duplicate User or Email Check
-- **Issue**: No check for uniqueness.
-- **Exploit**: Duplicates lead to data corruption or enumeration.
-- **Fix**: Validate username/email against database before account creation.
+#### 5. `/register`: Lack of Checks for Duplicate Users or Emails  
+- **Issue**: Uniqueness is not verified.  
+- **Exploit**: Duplicate entries can result in data corruption or enumeration issues.  
+- **Fix**: Confirm that the username/email is unique before creating an account.  
 
 ---
 
-#### 6. `/register`: Weak Password Policy
-- **Issue**: No password strength validation.
-- **Exploit**: Easy brute-force or credential stuffing.
-- **Fix**: Require min 8 characters, uppercase, lowercase, and digit.
+#### 6. `/register`: Inadequate Password Strength Policy  
+- **Issue**: There is no validation for password strength.  
+- **Exploit**: Simple passwords can be easily brute-forced or subjected to credential stuffing attacks.  
+- **Fix**: Enforce a requirement of at least 8 characters, including uppercase, lowercase letters, and digits.  
 
 ---
 
-#### 7. `/transfer`: Unvalidated `transfer_type`
-- **Issue**: Accepts any string.
-- **Exploit**: Malicious input could bypass logic or cause errors.
-- **Fix**: Restrict to `'username'` or `'account'` only.
+#### 7. `/transfer`: Unchecked `transfer_type` Parameter  
+- **Issue**: The system accepts any string for the transfer type.  
+- **Exploit**: Malicious input could circumvent logic or trigger errors.  
+- **Fix**: Limit accepted values to either `'username'` or `'account'`.  
 
 ---
 
-#### 8. `/transfer`: Recipient Enumeration
-- **Issue**: Detailed error reveals if account exists.
-- **Exploit**: Probe for valid usernames/accounts.
-- **Fix**: Use generic error: `"Invalid recipient or transfer not allowed."`
+#### 8. `/transfer`: Enumeration of Recipients  
+- **Issue**: Detailed error messages indicate whether an account exists.  
+- **Exploit**: Attackers can search for valid usernames or accounts.  
+- **Fix**: Display a generic error message: `"Invalid recipient or transfer not allowed."`  
 
 ---
 
-#### 9. `/execute_transfer`: No Validation on Amount
-- **Issue**: No cap or non-numeric check.
-- **Exploit**: Use ₱0, negative, or billion-peso transfers to manipulate balance.
-- **Fix**: Validate float, enforce range ₱1–₱1,000,000.
+#### 9. `/execute_transfer`: Lack of Validation on Transfer Amount  
+- **Issue**: There are no checks for non-numeric values or limits on amounts.  
+- **Exploit**: Users could attempt to transfer ₱0, negative amounts, or excessive values to manipulate their balance.  
+- **Fix**: Validate that the amount is a float and falls within the range of ₱1–₱1,000,000.  
 
 ---
 
-#### 10. `/execute_transfer`: Recipient Timing Leak
-- **Issue**: Reveals if recipient exists or is inactive.
-- **Exploit**: Enumeration via error response.
-- **Fix**: Merge errors, add `time.sleep(1.5)` delay.
+#### 10. `/execute_transfer`: Timing Leak on Recipient Validation  
+- **Issue**: It reveals whether a recipient exists or is inactive.  
+- **Exploit**: Attackers can enumerate users based on the response.  
+- **Fix**: Combine error messages and introduce a `time.sleep(1.5)` delay.  
 
 ---
 
-#### 11. `/admin`: State Change via GET (CSRF)
-- **Issue**: Activating/deactivating users via GET.
-- **Exploit**: CSRF via image or malicious link.
-- **Fix**: Change method to POST and use CSRF tokens.
+#### 11. `/admin`: State Change via GET Method (CSRF)  
+- **Issue**: Users can be activated or deactivated using a GET request.  
+- **Exploit**: This could allow CSRF via a malicious link or image.  
+- **Fix**: Switch the method to POST and implement CSRF tokens.  
 
 ---
 
-#### 12. `/admin`: No Duplicate User Check
-- **Issue**: Allows duplicate creation.
-- **Exploit**: Account takeover or DB errors.
-- **Fix**: Validate both username and email before creation.
+#### 12. `/admin`: Absence of Duplicate User Validation  
+- **Issue**: The system allows the creation of duplicate user accounts.  
+- **Exploit**: This could lead to account takeovers or database errors.  
+- **Fix**: Check both username and email for duplicates before account creation.  
 
 ---
 
-#### 13. `/admin`: New Users Automatically Active
-- **Issue**: No approval required.
-- **Exploit**: Admins create unmoderated users.
-- **Fix**: Default new user `status='pending'`.
+#### 13. `/admin`: Automatic Activation of New Users  
+- **Issue**: New users are automatically set to active status.  
+- **Exploit**: Admins could create users without moderation.  
+- **Fix**: Default the status of new users to `pending`.  
 
 ---
 
-#### 14. `/admin/deposit`: No Validation on Amount
-- **Issue**: Allows invalid deposits.
-- **Exploit**: Insert negative/huge values.
-- **Fix**: Enforce 0 < amount ≤ ₱100,000.
+#### 14. `/admin/deposit`: Lack of Validation on Deposit Amount  
+- **Issue**: Invalid deposit amounts are accepted.  
+- **Exploit**: This could permit negative or excessively large values.  
+- **Fix**: Ensure the amount is greater than 0 and does not exceed ₱100,000.  
 
 ---
 ---
