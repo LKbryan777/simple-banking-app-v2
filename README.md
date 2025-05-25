@@ -61,50 +61,50 @@ Database-backed with MySQL using SQLAlchemy.
 
 | Vulnerability                          | Description                                                                 |
 |----------------------------------------|-----------------------------------------------------------------------------|
-| **Content Security Policy (CSP) Header Not Set** | The application does not set a CSP header, which helps prevent XSS and data injection attacks. |
-| **Missing Anti-clickjacking Header**   | X-Frame-Options or Content-Security-Policy with frame-ancestors directive is missing, making the site vulnerable to clickjacking. |
+| **Content Security Policy (CSP) Header Not Set** | The application does not implement a Content Security Policy (CSP) header, which is essential for mitigating cross-site scripting (XSS) and data injection attacks. |
+| **Missing Anti-clickjacking Header**   |The lack of an X-Frame-Options header or a Content Security Policy with the frame-ancestors directive leaves the site vulnerable to clickjacking.|
 
 #### **Low Priority**
 
 | Vulnerability                          | Description                                                                 |
 |----------------------------------------|-----------------------------------------------------------------------------|
-| **Application Error Disclosure**       | The application reveals internal error messages that could help an attacker understand backend logic. |
-| **Cookie Without Secure Flag**         | Cookies are set without the 'Secure' flag, meaning they could be transmitted over non-HTTPS connections. |
-| **Cookie Without SameSite Attribute**  | Cookies are missing the SameSite attribute, which helps prevent CSRF attacks. |
-| **Cross-Domain JavaScript Source File Inclusion** | External JavaScript files are included from different domains, increasing the risk of external code compromise. |
-| **Information Disclosure - Debug Error Messages** | Debug-level error messages are exposed, potentially leaking sensitive information to attackers. |
+| **Application Error Disclosure**       | The application discloses internal error messages that could provide attackers with insights into the backend logic. |
+| **Cookie Without Secure Flag**         | Cookies are set without the 'Secure' flag, which poses a risk as they may be transmitted over non-HTTPS connections.  |
+| **Cookie Without SameSite Attribute**  |  The absence of the SameSite attribute on cookies compromises protection against cross-site request forgery (CSRF) attacks. |
+| **Cross-Domain JavaScript Source File Inclusion** | External JavaScript files from various domains heightens the risk of external code compromise. |
+| **Information Disclosure - Debug Error Messages** | Exposing debug-level error messages could inadvertently leak sensitive information to potential attackers. |
 
 
-The security review of the system also revealed several critical vulnerabilities and weaknesses that could expose it to both external and internal threats.
+The security review found several serious weaknesses in the system that could make it vulnerable to threats from both outside and inside.
 
 1. Weak Password Practices
-    - Passwords stored with minimal validation.
-    - Use of weak default credentials increases risk of unauthorized access.
+   - Passwords are stored with minimal validation.
+   - The use of weak default credentials heightens the risk of unauthorized access.
 
-2. Financial Calculation Risk
-    - Use of floating-point values for balance calculations can lead to rounding errors.
+2. Financial Calculation Risks
+   - Utilizing floating-point values for balance calculations can result in rounding errors.
 
-3.  API Error Handling
-    - Lack of error handling for PSGC API failures
+3. API Error Handling
+   - There is insufficient error handling for failures in the PSGC API.
 
-4.   XSS Vulnerability
-    - No output escaping on user-generated content (risk of Cross-Site Scripting).
+4. XSS Vulnerability
+   - User-generated content lacks output escaping, posing a risk for Cross-Site Scripting (XSS).
 
-5.  Data Transmission Security
-    - No HTTPS enforcement; sensitive data may be intercepted.
-    - Missing security headers reduce resistance to web attacks.
+5. Data Transmission Security
+   - HTTPS is not enforced, which allows sensitive data to be intercepted.
+   - Missing security headers diminish the system's resistance to web attacks.
 
-6.   Session and CSRF Issues
-    - Incomplete session management.
-    - CSRF token implementation is inconsistent or missing.
+6. Session and CSRF Concerns
+   - Session management is incomplete.
+   - CSRF token implementation is either inconsistent or absent.
 
-7.   Outdated Dependencies
-    - Use of outdated third-party packages with known vulnerabilities.
+7. Outdated Dependencies
+   - The use of outdated third-party packages with known vulnerabilities is present.
 
 8. Lack of Audit Logging
-    - Admin/manager actions are untracked.
-    - No audit trail exists for sensitive operations.
-
+   - Actions taken by administrators and managers are untracked.
+   - There is no audit trail for sensitive operations.
+     
 ---
 ---
 
