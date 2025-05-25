@@ -17,7 +17,7 @@
                     {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
-                        {{ form.account_number.label(class="form-label") }}
+                        {{ form.account_number.label(class="form-label", required=True) }}
                         <div class="input-group">
                             {{ form.account_number(class="form-control") }}
                             <button type="button" class="btn btn-outline-secondary" id="lookup-btn">Lookup Account</button>
@@ -43,6 +43,7 @@
                         {{ form.submit(class="btn btn-primary") }}
                     </div>
                 </form>
+                
             </div>
         </div>
         
