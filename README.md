@@ -1,4 +1,4 @@
-# Securing an Existing Banking Application - Security Assessment and Improvement of a Web-Based Banking Application
+# Web Application Security Enhancement for a Flask-Powered Banking System
 
 
 ### Group Members: 
