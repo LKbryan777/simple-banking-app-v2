@@ -197,7 +197,7 @@ Helps reduce spam, fake registrations, and abuse of system resources.
 
 2. **No Duplicate Username or Email Check**
    
-The code did not check if the username or email was already registered. This could cause database errors or allow multiple accounts with the same credentials.
+The function failed to verify whether the email address or login was already registered. This might permit several accounts with the same credentials or result in database issues.
 
 ***Improvements***
 ```python
@@ -255,7 +255,7 @@ Added explicit validation to ensure transfer_type is either 'username' or 'accou
 Prevents malformed or unexpected inputs from affecting business logic or causing errors.
 
 2. **Recipient Enumeration Risk**  
-When the recipient was not found (e.g., invalid username or account number), the system responded differently, potentially leaking information about valid usernames or accounts.
+If the recipient could not be found (for example, because the username or account number was invalid), the system replied in a different way, which could have let information about valid usernames or accounts get leaked out.
 
 ***Improvements***
 ```python
@@ -267,7 +267,7 @@ When recipient lookup fails, a generic error message is shown rather than reveal
 This prevents attackers from probing valid accounts via response differences.
 
 3. **Order of Balance Check and Recipient Status Check**  
-The original code checked for sufficient balance before verifying if the recipient account was active, which might waste resources or reveal information unintentionally.
+The original code checked to see if there was enough money in the account before checking to see if the recipient's account was open. This could have wasted resources or accidentally shared information.
 
 ***Improvements***
 
