@@ -6,9 +6,9 @@
 - Lily Rose Julianes
 - Kenth Lorenz Collao
 
-**Live Web App**: [Deployed Banking Application]
+**Live Web App**: (https://drive.google.com/drive/folders/1R2ccWjKLHTd5t-wGy2nwi7vBCMdj1h3X?usp=sharing)
 
-**Video Presentation**: [Youtube Link]
+**Video Presentation**: [https://drive.google.com/file/d/12lF2CFihEKLWuoK5X_aYopUqzF91LOvX/view?usp=sharing]
 
 ---
 ---
